@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.27)
+project(prog_paralela C)
+
+set(CMAKE_C_STANDARD 11)
+
+add_library(prog_paralela STATIC library.c)

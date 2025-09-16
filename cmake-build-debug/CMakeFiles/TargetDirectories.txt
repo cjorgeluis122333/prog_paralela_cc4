@@ -1,0 +1,3 @@
+D:/PROGRAMACION/c/programacion_paralela/prog_paralela/cmake-build-debug/CMakeFiles/prog_paralela.dir
+D:/PROGRAMACION/c/programacion_paralela/prog_paralela/cmake-build-debug/CMakeFiles/edit_cache.dir
+D:/PROGRAMACION/c/programacion_paralela/prog_paralela/cmake-build-debug/CMakeFiles/rebuild_cache.dir

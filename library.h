@@ -1,0 +1,6 @@
+#ifndef PROG_PARALELA_LIBRARY_H
+#define PROG_PARALELA_LIBRARY_H
+
+void hello(void);
+
+#endif //PROG_PARALELA_LIBRARY_H
