@@ -61,6 +61,12 @@ build CMakeFiles/prog_paralela.dir/calculate_total_sum.c.obj: C_COMPILER__prog_p
   OBJECT_DIR = CMakeFiles\prog_paralela.dir
   OBJECT_FILE_DIR = CMakeFiles\prog_paralela.dir
 
+build CMakeFiles/prog_paralela.dir/materiales_conf_3/send_receive.c.obj: C_COMPILER__prog_paralela_unscanned_Debug D$:/PROGRAMACION/c/programacion_paralela/prog_paralela/materiales_conf_3/send_receive.c || cmake_object_order_depends_target_prog_paralela
+  DEP_FILE = CMakeFiles\prog_paralela.dir\materiales_conf_3\send_receive.c.obj.d
+  FLAGS = -g -std=gnu11 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\prog_paralela.dir
+  OBJECT_FILE_DIR = CMakeFiles\prog_paralela.dir\materiales_conf_3
+
 
 # =============================================================================
 # Link build statements for STATIC_LIBRARY target prog_paralela
@@ -69,7 +75,7 @@ build CMakeFiles/prog_paralela.dir/calculate_total_sum.c.obj: C_COMPILER__prog_p
 #############################################
 # Link the static library libprog_paralela.a
 
-build libprog_paralela.a: C_STATIC_LIBRARY_LINKER__prog_paralela_Debug CMakeFiles/prog_paralela.dir/library.c.obj CMakeFiles/prog_paralela.dir/calculate_total_sum.c.obj
+build libprog_paralela.a: C_STATIC_LIBRARY_LINKER__prog_paralela_Debug CMakeFiles/prog_paralela.dir/library.c.obj CMakeFiles/prog_paralela.dir/calculate_total_sum.c.obj CMakeFiles/prog_paralela.dir/materiales_conf_3/send_receive.c.obj
   LANGUAGE_COMPILE_FLAGS = -g
   OBJECT_DIR = CMakeFiles\prog_paralela.dir
   POST_BUILD = cd .
