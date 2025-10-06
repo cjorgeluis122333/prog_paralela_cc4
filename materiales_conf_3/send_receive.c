@@ -14,7 +14,8 @@ int main(int argc, char* argv[])
  
     // Size of the default communicator
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);  //Inicializo la variable size con el numero de procesos con el que se decide empezar
+
     if(size != 2)
     {
         printf("This application is meant to be run with 2 processes.\n");
@@ -24,13 +25,20 @@ int main(int argc, char* argv[])
     // Get my rank and do the corresponding job
     enum role_ranks { SENDER, RECEIVER };
     int my_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);  //Saber cual es el proceso que esta ejecutando esta parte de el codigo
     switch(my_rank)
     {
         case SENDER:
         {
             int buffer[3] = {0};
-            MPI_Send(buffer, 3, MPI_INT, RECEIVER, 0, MPI_COMM_WORLD);
+            MPI_Send(
+                    buffer,  //Value to pass
+                    3, //Count
+                    MPI_INT, // Tipo de dato
+                    1, //Destino
+                    0, //Etiqueta
+                    MPI_COMM_WORLD //MPI_Comm
+                    );
             break;
         }
         case RECEIVER:
@@ -38,7 +46,15 @@ int main(int argc, char* argv[])
             // Receive the buffer
             int buffer[3];
             MPI_Status status;
-            MPI_Recv(buffer, 3, MPI_INT, SENDER, 0, MPI_COMM_WORLD, &status);
+            MPI_Recv(
+                    buffer, //received_message
+                    3, //count
+                    MPI_INT, //datatype
+                    0, //source
+                    0, //tag
+                    MPI_COMM_WORLD, //MPI_Comm
+                    &status //MPI_Status
+                    );
  
             // Retrieve the number of elements (should be 3)
             int count;
