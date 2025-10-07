@@ -1,4 +1,5 @@
-### Comandos Importantes Para MPI
+# Como trabajar con MPI
+## Comandos Importantes Para MPI
   ``` MPI-Compilation
     //Para compilar un programa en MPI 
     mpicc ex3BroadcastIaSolution.c -o ex3Broadcast
