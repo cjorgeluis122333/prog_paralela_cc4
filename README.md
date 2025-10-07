@@ -1,4 +1,7 @@
-# Como trabajar con MPI
+# How work with MPI
+Here you can found a lot of resolved samples of MPI in language C. 
+And the command for execute used linux or WSL2. 
+I hope that can help you 
 ## Comandos Importantes Para MPI
   ``` MPI-Compilation
     //Para compilar un programa en MPI 
