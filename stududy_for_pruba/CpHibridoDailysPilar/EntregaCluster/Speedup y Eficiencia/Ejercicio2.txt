@@ -1,0 +1,9 @@
+Speedup 
+= TiempoSecuencial/TiempoParalelo 
+= 0.000003 segundos /0.000001 segundos
+= 3 segundos
+
+Eficiencia 
+= Speedup / Cantidad de procesos en programa paralelo 
+= 3 segundos/2
+= 1.5 segundos
