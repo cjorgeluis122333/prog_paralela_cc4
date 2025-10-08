@@ -1,0 +1,9 @@
+MPI_Reduce(
+    sendbuf,    // Lo que CADA proceso envía (entrada)
+    recvbuf,    // Donde se guarda el resultado (solo en root)
+    count,      // Cuántos elementos
+    datatype,   // Tipo de dato (MPI_INT, MPI_FLOAT, etc.)
+    op,         // Operación (MPI_SUM, MPI_MAX, MPI_MIN, etc.)
+    root,       // Proceso que recibe el resultado
+    comm        // Comunicador
+);
