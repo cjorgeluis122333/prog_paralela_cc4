@@ -11,6 +11,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <time.h>
+#include <limits.h>  // Para INT_MAX
+
+// Función para comparar enteros (usada en qsort)
+int comparar_enteros(const void *a, const void *b) {
+    return (*(int*)a - *(int*)b);
+}
+
+// Función para mezclar múltiples arrays ordenados - CORREGIDA
+void mezclar_arrays_ordenados(int **arrays, int *tamanos, int num_arrays, int *resultado, int total_elementos) {
+    // Array para llevar el índice actual de cada array
+    int *indices = (int*)calloc(num_arrays, sizeof(int));
+
+    // Array para los valores actuales de cada array
+    int *valores_actuales = (int*)malloc(num_arrays * sizeof(int));
+
+    // Inicializar valores actuales
+    for(int i = 0; i < num_arrays; i++) {
+        if(tamanos[i] > 0) {
+            valores_actuales[i] = arrays[i][0];
+        } else {
+            valores_actuales[i] = INT_MAX; // Valor máximo si el array está vacío
+        }
+    }
+
+    // Mezclar los arrays - CORREGIDO: usar total_elementos
+    for(int pos = 0; pos < total_elementos; pos++) {
+        // Encontrar el valor mínimo entre los valores actuales
+        int min_val = INT_MAX;
+        int min_idx = -1;
+
+        for(int i = 0; i < num_arrays; i++) {
+            if(indices[i] < tamanos[i] && valores_actuales[i] < min_val) {
+                min_val = valores_actuales[i];
+                min_idx = i;
+            }
+        }
+
+        // Si no encontramos mínimo, terminamos
+        if(min_idx == -1) break;
+
+        // Colocar el mínimo en el resultado
+        resultado[pos] = min_val;
+
+        // Avanzar en el array del mínimo
+        indices[min_idx]++;
+        if(indices[min_idx] < tamanos[min_idx]) {
+            valores_actuales[min_idx] = arrays[min_idx][indices[min_idx]];
+        } else {
+            valores_actuales[min_idx] = INT_MAX;
+        }
+    }
+
+    free(indices);
+    free(valores_actuales);
+}
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
@@ -163,12 +219,49 @@ int main(int argc, char *argv[]) {
 
     // El proceso 0 muestra los resultados finales
     if (rank == 0) {
-        printf("\n=== RESULTADOS FINALES ===\n");
-        printf("Todos los cuadrados calculados: ");
-        for (int i = 0; i < total_numeros; i++) {
+        // Preparar arrays para la mezcla
+        int **arrays_ordenados = (int**)malloc(size * sizeof(int*));
+        int *tamanos_arrays = (int*)malloc(size * sizeof(int));
+
+        for(int i = 0; i < size; i++) {
+            arrays_ordenados[i] = resultados_completos + rdispls[i];
+            tamanos_arrays[i] = recvcounts[i];
+        }
+
+        // Crear vector temporal para el resultado de la mezcla
+        int *vector_mezclado = (int*)malloc(total_numeros * sizeof(int));
+
+        // Mezclar todos los segmentos ordenados
+        mezclar_arrays_ordenados(arrays_ordenados, tamanos_arrays, size, vector_mezclado, total_numeros);
+
+        // Copiar el resultado mezclado al vector final
+        for(int i = 0; i < total_numeros; i++) {
+            resultados_completos[i] = vector_mezclado[i];
+        }
+
+        free(vector_mezclado);
+        free(arrays_ordenados);
+        free(tamanos_arrays);
+
+        // Mostrar resultados
+        printf("\n=== RESULTADO FINAL ===\n");
+        printf("Vector completamente ordenado: ");
+        for(int i = 0; i < total_numeros; i++) {
             printf("%d ", resultados_completos[i]);
         }
         printf("\n");
+
+        // Verificar que está ordenado
+        int ordenado = 1;
+        for(int i = 1; i < total_numeros; i++) {
+            if(resultados_completos[i] < resultados_completos[i-1]) {
+                ordenado = 0;
+                break;
+            }
+        }
+        printf("Verificación: El vector %s está correctamente ordenado.\n",
+               ordenado ? "SÍ" : "NO");
+
 
         // Liberar memoria
         free(resultados_completos);
