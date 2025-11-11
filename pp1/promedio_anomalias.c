@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
         printf("El promedio total es %f \n", promedio);
 
         // Contar total elementos por debajo del promedio
-        int downP = down_of_promedio(vector_completo, promedio, total_elementos,K);
+        int downP = down_of_p romedio(vector_completo, promedio, total_elementos,K);
         printf("Por debajo del promedio: %d\n", downP);
 
 
