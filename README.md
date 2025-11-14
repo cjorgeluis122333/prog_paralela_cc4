@@ -40,3 +40,14 @@ ssh -p 2022 uclv_jcvidal@login.uclv.hpc.cu
 ```shell
  ./media_omp
 ```
+
+### Para compilar programas con computación híbrida usa de OpenMP y MPI
+```bash
+mpicc -fopenmp -o ejercicio1 Ejercicio1.c
+```
+
+# Para algunos casos
+mpicc -fopenmp -o ejer2 Ejercicio2-1.c -lm
+
+# Ejecutar con 4 procesos MPI
+mpirun -np 4 ./ejer2 1000000
