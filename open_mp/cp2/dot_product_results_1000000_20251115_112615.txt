@@ -1,0 +1,32 @@
+RESULTADOS PRODUCTO ESCALAR HÍBRIDO (MPI + OpenMP)
+==================================================
+Fecha: 2025-11-15 11:26:15
+Tamaño del vector: 1000000
+Procesos MPI: 4
+Hilos OpenMP máximos disponibles: 8
+
+CONFIGURACION SECUENCIAL
+------------------------
+Resultado: 2000000.000000
+Tiempo: 0.003551 segundos
+
+ANALISIS DE RENDIMIENTO CON DIFERENTES CONFIGURACIONES
+======================================================
+Configuración | Hilos/Proceso | Total Hilos | Tiempo (s) | Speedup  | Eficiencia
+--------------------------------------------------------------------------------
+    4 MPI ×  1 |       1       |       4     | 0.001156 |  3.0709 |   0.7677
+    4 MPI ×  2 |       2       |       8     | 0.002845 |  1.2483 |   0.1560
+    4 MPI ×  4 |       4       |      16     | 0.011476 |  0.3094 |   0.0193
+    4 MPI ×  8 |       8       |      32     | 0.013426 |  0.2645 |   0.0083
+    4 MPI × 16 |      16       |      64     | 0.002945 |  1.2056 |   0.0188
+    4 MPI × Auto |      16       |      64     | 0.001112 |  3.1945 |   0.0499
+
+RESUMEN Y RECOMENDACIONES
+========================
+Mejor configuración para 4 procesos MPI:
+- Hilos OpenMP recomendados: 1
+- Speedup máximo: 3.0709
+- Eficiencia máxima: 0.7677
+- Configuración óptima: 4 MPI × 1 OpenMP
+- Tiempo secuencial: 0.003551 segundos
+- Tiempo paralelo óptimo: 0.001156 segundos
