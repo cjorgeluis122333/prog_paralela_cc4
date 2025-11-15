@@ -6,32 +6,32 @@
 #include <time.h>
 
 // Función para inicializar la matriz con valores aleatorios (solo proceso 0)
-void inicializar_matriz(double **matriz, int filas, int columnas) {
+void inicializar_matriz(double *matriz, int filas, int columnas) {
     for (int i = 0; i < filas; i++) {
         for (int j = 0; j < columnas; j++) {
-            matriz[i][j] = (double)rand() / RAND_MAX * 100.0;
+            matriz[i * columnas + j] = (double)rand() / RAND_MAX * 100.0;
         }
     }
 }
 
 // Función para calcular suma de filas CON OpenMP
-void calcular_suma_filas_openmp(double **matriz, double *sumas, int filas, int columnas) {
+void calcular_suma_filas_openmp(double *matriz, double *sumas, int filas, int columnas) {
 #pragma omp parallel for
     for (int i = 0; i < filas; i++) {
         double suma_local = 0.0;
         for (int j = 0; j < columnas; j++) {
-            suma_local += matriz[i][j];
+            suma_local += matriz[i * columnas + j];
         }
         sumas[i] = suma_local;
     }
 }
 
 // Función para calcular suma de filas SIN OpenMP
-void calcular_suma_filas_secuencial(double **matriz, double *sumas, int filas, int columnas) {
+void calcular_suma_filas_secuencial(double *matriz, double *sumas, int filas, int columnas) {
     for (int i = 0; i < filas; i++) {
         double suma_local = 0.0;
         for (int j = 0; j < columnas; j++) {
-            suma_local += matriz[i][j];
+            suma_local += matriz[i * columnas + j];
         }
         sumas[i] = suma_local;
     }
@@ -51,7 +51,7 @@ void escribir_resultados_archivo(FILE *archivo, const char *formato, ...) {
 int main(int argc, char *argv[]) {
     int rank, size;
     int filas_total, columnas;
-    double **matriz = NULL;
+    double *matriz = NULL;
     double *sumas_total = NULL;
     double t_inicio, t_fin, t_secuencial;
 
@@ -118,34 +118,38 @@ int main(int argc, char *argv[]) {
     }
 
     // Preparar arrays para Scatterv
-    int *sendcounts = NULL;
-    int *displs = NULL;
+    int *sendcounts = (int*)malloc(size * sizeof(int));
+    int *displs = (int*)malloc(size * sizeof(int));
 
+    // Arrays para Gatherv de las sumas
+    int *recvcounts_sumas = (int*)malloc(size * sizeof(int));
+    int *displs_sumas = (int*)malloc(size * sizeof(int));
+
+    // Solo proceso 0 calcula los valores
     if (rank == 0) {
-        sendcounts = (int*)malloc(size * sizeof(int));
-        displs = (int*)malloc(size * sizeof(int));
-
         int offset = 0;
+        int offset_sumas = 0;
         for (int i = 0; i < size; i++) {
-            sendcounts[i] = (i < filas_extra) ? filas_por_proceso + 1 : filas_por_proceso;
-            displs[i] = offset;
+            int filas_proc = (i < filas_extra) ? filas_por_proceso + 1 : filas_por_proceso;
+            sendcounts[i] = filas_proc * columnas;  // Número de elementos (doubles)
+            displs[i] = offset;                     // Desplazamiento en elementos
             offset += sendcounts[i];
+
+            recvcounts_sumas[i] = filas_proc;       // Número de sumas (una por fila)
+            displs_sumas[i] = offset_sumas;         // Desplazamiento en sumas
+            offset_sumas += recvcounts_sumas[i];
         }
-    } else {
-        sendcounts = (int*)malloc(size * sizeof(int));
-        displs = (int*)malloc(size * sizeof(int));
     }
 
-    // Broadcast de parámetros de distribución
+    // Broadcast de parámetros de distribución a TODOS los procesos
     MPI_Bcast(sendcounts, size, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(displs, size, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(recvcounts_sumas, size, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(displs_sumas, size, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Proceso 0 inicializa la matriz completa
     if (rank == 0) {
-        matriz = (double**)malloc(filas_total * sizeof(double*));
-        for (int i = 0; i < filas_total; i++) {
-            matriz[i] = (double*)malloc(columnas * sizeof(double));
-        }
+        matriz = (double*)malloc(filas_total * columnas * sizeof(double));
         inicializar_matriz(matriz, filas_total, columnas);
         sumas_total = (double*)malloc(filas_total * sizeof(double));
 
@@ -160,37 +164,28 @@ int main(int argc, char *argv[]) {
         escribir_resultados_archivo(archivo_resultados, "Procesos MPI: %d\n", size);
         escribir_resultados_archivo(archivo_resultados, "Distribución de filas: ");
         for (int i = 0; i < size; i++) {
-            fprintf(archivo_resultados, "%d ", sendcounts[i]);
+            escribir_resultados_archivo(archivo_resultados, "%d ", recvcounts_sumas[i]);
         }
         escribir_resultados_archivo(archivo_resultados, "\n");
         escribir_resultados_archivo(archivo_resultados, "Tiempo secuencial: %.6f segundos\n\n", t_secuencial);
 
-        escribir_resultados_archivo(archivo_resultados, "Primeras 10 sumas de filas:\n");
+        // Verificar que las sumas sean correctas antes de continuar
+        escribir_resultados_archivo(archivo_resultados, "Primeras 10 sumas de filas (verificación):\n");
         for (int i = 0; i < 10 && i < filas_total; i++) {
             escribir_resultados_archivo(archivo_resultados, "Fila %d: %.2f\n", i, sumas_total[i]);
         }
         escribir_resultados_archivo(archivo_resultados, "\n");
+
+        printf("DEBUG: Matriz %dx%d, Tiempo secuencial: %.6f\n", filas_total, columnas, t_secuencial);
+        printf("DEBUG: Primera suma: %.2f\n", sumas_total[0]);
     }
 
     // Crear matriz local para cada proceso
-    double **matriz_local = (double**)malloc(filas_local * sizeof(double*));
-    for (int i = 0; i < filas_local; i++) {
-        matriz_local[i] = (double*)malloc(columnas * sizeof(double));
-    }
+    double *matriz_local = (double*)malloc(filas_local * columnas * sizeof(double));
     double *sumas_local = (double*)malloc(filas_local * sizeof(double));
 
-    // Crear tipo de dato MPI para una fila
-    MPI_Datatype fila_type;
-    MPI_Type_contiguous(columnas, MPI_DOUBLE, &fila_type);
-    MPI_Type_commit(&fila_type);
-
-    // Distribuir datos
-    MPI_Scatterv(
-            (rank == 0) ? matriz[0] : NULL,
-            sendcounts, displs, fila_type,
-            matriz_local[0], filas_local, fila_type,
-            0, MPI_COMM_WORLD
-    );
+    // Sincronizar antes de comenzar las pruebas
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // Solo proceso 0 realiza el análisis completo
     if (rank == 0) {
@@ -201,34 +196,37 @@ int main(int argc, char *argv[]) {
 
         escribir_resultados_archivo(archivo_resultados, "Configuraciones de hilos: ");
         for (int i = 0; i < num_configs; i++) {
-            fprintf(archivo_resultados, "%d ", config_hilos[i]);
+            escribir_resultados_archivo(archivo_resultados, "%d ", config_hilos[i]);
         }
         escribir_resultados_archivo(archivo_resultados, "\n\n");
 
-        fprintf(archivo_resultados, "Hilos_OpenMP,Tiempo_Secuencial,Tiempo_Paralelo,Speedup,Eficiencia\n");
+        escribir_resultados_archivo(archivo_resultados, "Hilos_OpenMP,Tiempo_Secuencial,Tiempo_Paralelo,Speedup,Eficiencia\n");
 
         // Probar diferentes configuraciones de hilos
         for (int config_idx = 0; config_idx < num_configs; config_idx++) {
             int hilos_openmp = config_hilos[config_idx];
+
+            // Establecer número de hilos para TODOS los procesos
             omp_set_num_threads(hilos_openmp);
 
+            // Sincronizar antes de cada prueba
             MPI_Barrier(MPI_COMM_WORLD);
             double start_time = MPI_Wtime();
 
-            // Re-distribuir datos (ya están distribuidos, pero para consistencia)
+            // Re-distribuir datos para cada prueba
             MPI_Scatterv(
-                    matriz[0], sendcounts, displs, fila_type,
-                    matriz_local[0], filas_local, fila_type,
+                    matriz, sendcounts, displs, MPI_DOUBLE,
+                    matriz_local, sendcounts[rank], MPI_DOUBLE, // Usar sendcounts[rank] para este proceso
                     0, MPI_COMM_WORLD
             );
 
             // Calcular con OpenMP
             calcular_suma_filas_openmp(matriz_local, sumas_local, filas_local, columnas);
 
-            // Recolectar resultados
+            // Recolectar resultados - CORREGIDO: usar recvcounts_sumas y displs_sumas
             MPI_Gatherv(
-                    sumas_local, filas_local, MPI_DOUBLE,
-                    sumas_total, sendcounts, displs, MPI_DOUBLE,
+                    sumas_local, recvcounts_sumas[rank], MPI_DOUBLE, // Cada proceso envía su número de filas
+                    sumas_total, recvcounts_sumas, displs_sumas, MPI_DOUBLE,
                     0, MPI_COMM_WORLD
             );
 
@@ -236,34 +234,42 @@ int main(int argc, char *argv[]) {
             double end_time = MPI_Wtime();
             double parallel_time = end_time - start_time;
 
-            double speedup = t_secuencial / parallel_time;
-            double eficiencia = (speedup / (size * hilos_openmp)) * 100;
+            if (t_secuencial > 0 && parallel_time > 0) {
+                double speedup = t_secuencial / parallel_time;
+                double eficiencia = (speedup / (size * hilos_openmp)) * 100;
 
-            escribir_resultados_archivo(archivo_resultados,
-                                        "%d,%.6f,%.6f,%.4f,%.2f\n",
-                                        hilos_openmp, t_secuencial, parallel_time, speedup, eficiencia);
+                escribir_resultados_archivo(archivo_resultados,
+                                            "%d,%.6f,%.6f,%.4f,%.2f\n",
+                                            hilos_openmp, t_secuencial, parallel_time, speedup, eficiencia);
 
-            printf("OpenMP %d hilos: Tiempo=%.6fs, Speedup=%.4f, Eficiencia=%.2f%%\n",
-                   hilos_openmp, parallel_time, speedup, eficiencia);
+                printf("OpenMP %d hilos: Tiempo=%.6fs, Speedup=%.4f, Eficiencia=%.2f%%\n",
+                       hilos_openmp, parallel_time, speedup, eficiencia);
+            } else {
+                escribir_resultados_archivo(archivo_resultados,
+                                            "%d,%.6f,%.6f,ERROR,ERROR\n",
+                                            hilos_openmp, t_secuencial, parallel_time);
+                printf("ERROR: Tiempos inválidos para %d hilos\n", hilos_openmp);
+            }
         }
 
         // Probar configuración automática
-        MPI_Barrier(MPI_COMM_WORLD);
-        omp_set_num_threads(omp_get_max_threads());
+        int auto_threads = omp_get_max_threads();
+        omp_set_num_threads(auto_threads);
 
+        MPI_Barrier(MPI_COMM_WORLD);
         double start_time_auto = MPI_Wtime();
 
         MPI_Scatterv(
-                matriz[0], sendcounts, displs, fila_type,
-                matriz_local[0], filas_local, fila_type,
+                matriz, sendcounts, displs, MPI_DOUBLE,
+                matriz_local, sendcounts[rank], MPI_DOUBLE,
                 0, MPI_COMM_WORLD
         );
 
         calcular_suma_filas_openmp(matriz_local, sumas_local, filas_local, columnas);
 
         MPI_Gatherv(
-                sumas_local, filas_local, MPI_DOUBLE,
-                sumas_total, sendcounts, displs, MPI_DOUBLE,
+                sumas_local, recvcounts_sumas[rank], MPI_DOUBLE,
+                sumas_total, recvcounts_sumas, displs_sumas, MPI_DOUBLE,
                 0, MPI_COMM_WORLD
         );
 
@@ -271,16 +277,17 @@ int main(int argc, char *argv[]) {
         double end_time_auto = MPI_Wtime();
         double auto_time = end_time_auto - start_time_auto;
 
-        double speedup_auto = t_secuencial / auto_time;
-        int auto_threads = omp_get_max_threads();
-        double eficiencia_auto = (speedup_auto / (size * auto_threads)) * 100;
+        if (t_secuencial > 0 && auto_time > 0) {
+            double speedup_auto = t_secuencial / auto_time;
+            double eficiencia_auto = (speedup_auto / (size * auto_threads)) * 100;
 
-        escribir_resultados_archivo(archivo_resultados,
-                                    "Auto(%d),%.6f,%.6f,%.4f,%.2f\n",
-                                    auto_threads, t_secuencial, auto_time, speedup_auto, eficiencia_auto);
+            escribir_resultados_archivo(archivo_resultados,
+                                        "Auto(%d),%.6f,%.6f,%.4f,%.2f\n",
+                                        auto_threads, t_secuencial, auto_time, speedup_auto, eficiencia_auto);
 
-        printf("OpenMP Auto(%d) hilos: Tiempo=%.6fs, Speedup=%.4f, Eficiencia=%.2f%%\n",
-               auto_threads, auto_time, speedup_auto, eficiencia_auto);
+            printf("OpenMP Auto(%d) hilos: Tiempo=%.6fs, Speedup=%.4f, Eficiencia=%.2f%%\n",
+                   auto_threads, auto_time, speedup_auto, eficiencia_auto);
+        }
 
         // Resumen
         escribir_resultados_archivo(archivo_resultados, "\n=== RESUMEN ===\n");
@@ -301,69 +308,72 @@ int main(int argc, char *argv[]) {
             omp_set_num_threads(hilos_openmp);
 
             MPI_Barrier(MPI_COMM_WORLD);
-            double start_time = MPI_Wtime();
 
+            // Los procesos no-0 reciben datos - CORREGIDO: usar sendcounts[rank]
             MPI_Scatterv(
-                    NULL, sendcounts, displs, fila_type,
-                    matriz_local[0], filas_local, fila_type,
+                    NULL, sendcounts, displs, MPI_DOUBLE,
+                    matriz_local, sendcounts[rank], MPI_DOUBLE,
                     0, MPI_COMM_WORLD
             );
 
             calcular_suma_filas_openmp(matriz_local, sumas_local, filas_local, columnas);
 
+            // Los procesos no-0 envían resultados - CORREGIDO: usar recvcounts_sumas[rank]
             MPI_Gatherv(
-                    sumas_local, filas_local, MPI_DOUBLE,
-                    NULL, sendcounts, displs, MPI_DOUBLE,
+                    sumas_local, recvcounts_sumas[rank], MPI_DOUBLE,
+                    NULL, NULL, NULL, MPI_DOUBLE,
                     0, MPI_COMM_WORLD
             );
 
             MPI_Barrier(MPI_COMM_WORLD);
-            double end_time = MPI_Wtime();
         }
 
-        // Configuración automática
-        MPI_Barrier(MPI_COMM_WORLD);
-        omp_set_num_threads(omp_get_max_threads());
+        // Configuración automática para procesos no-0
+        int auto_threads = omp_get_max_threads();
+        omp_set_num_threads(auto_threads);
 
-        double start_time_auto = MPI_Wtime();
+        MPI_Barrier(MPI_COMM_WORLD);
 
         MPI_Scatterv(
-                NULL, sendcounts, displs, fila_type,
-                matriz_local[0], filas_local, fila_type,
+                NULL, sendcounts, displs, MPI_DOUBLE,
+                matriz_local, sendcounts[rank], MPI_DOUBLE,
                 0, MPI_COMM_WORLD
         );
 
         calcular_suma_filas_openmp(matriz_local, sumas_local, filas_local, columnas);
 
         MPI_Gatherv(
-                sumas_local, filas_local, MPI_DOUBLE,
-                NULL, sendcounts, displs, MPI_DOUBLE,
+                sumas_local, recvcounts_sumas[rank], MPI_DOUBLE,
+                NULL, NULL, NULL, MPI_DOUBLE,
                 0, MPI_COMM_WORLD
         );
 
         MPI_Barrier(MPI_COMM_WORLD);
-        double end_time_auto = MPI_Wtime();
     }
 
-    // Liberar memoria
-    for (int i = 0; i < filas_local; i++) {
-        free(matriz_local[i]);
-    }
+    // Sincronizar antes de liberar memoria
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Liberar memoria local de CADA proceso
     free(matriz_local);
     free(sumas_local);
+
+    // Liberar arrays de distribución
     free(sendcounts);
     free(displs);
+    free(recvcounts_sumas);
+    free(displs_sumas);
 
+    // Solo proceso 0 libera la matriz global
     if (rank == 0) {
-        for (int i = 0; i < filas_total; i++) {
-            free(matriz[i]);
+        if (matriz != NULL) {
+            free(matriz);
         }
-        free(matriz);
-        free(sumas_total);
+        if (sumas_total != NULL) {
+            free(sumas_total);
+        }
     }
 
-    MPI_Type_free(&fila_type);
     MPI_Finalize();
-
     return 0;
 }
