@@ -21,9 +21,25 @@ I hope that can help you
     mpirun -np 2 ./ex3Broadcast
   ```
 
-## Conectar al cluster
-
+## Conectar al cluster 
+### Cuenta
 ssh -p 2022 uclv_jcvidal@login.uclv.hpc.cu
+### Paso 1: Configurar consola
+Para definir el tipo de usuario y la particion 
+```shell
+srun --account=UCLV -p gpu --gres=gpu:1 --pty /bin/bash
+```
+
+### Paso 2: Cargar ek Modulo
+
+```shell
+module load OpenMPI
+```
+
+## Paso 3 Compilar
+```shell
+mpicc -fopenmp -o ejer1 Ejer1.c -lm
+```
 
 ## Compilar
 
