@@ -3,23 +3,22 @@
 Here you can found a lot of resolved samples of MPI in language C.
 And the command for execute used linux or WSL2.
 I hope that can help you
+##  ============================ MPI
+## Important command for mpi
 
-## Comandos Importantes Para MPI
-
-  ``` MPI-Compilation
+  ``` bash
     //Para compilar un programa en MPI 
     mpicc ex3BroadcastIaSolution.c -o ex3Broadcast
     
     //Para compilar un programa en MPI utilizando funciones matematicas como Seno y Coseno se utiliza: -lm 
     mpicc ex3BroadcastIaSolution.c -o ex3Broadcast -lm
-
-
   ```
 
-  ``` MPI-RUNING
+  ``` bash
     //Para ejecutar un programa en MPI 
     mpirun -np 2 ./ex3Broadcast
   ```
+##  ============================CUSTER
 
 ## Connect and execute a project in the HPC (CUSTER)
 
@@ -106,22 +105,22 @@ chmod 755 script.sh
 ./scriptEjer2.sh
 ```
 
-##  ============================ COMPILED IN LOCAL
-## Compilar
+##  ============================ OPEN-MP
+## Compiled OMP-File
 
-#### Para la mayoria de los casos
+### In the most case
 
 ```shell
  gcc -o media_omp media_open.c -fopenmp
 ```
 
-#### Para funciones matematicas
+### For mathematics functions use -lm 
 
 ```shell
  gcc -fopenmp -o ejer3 Ejercicio3.c -lm
 ```
 
-## Ejecutar
+## Execute 
 
 ```shell
  ./media_omp
