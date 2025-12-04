@@ -106,7 +106,7 @@ chmod 755 script.sh
 ./scriptEjer2.sh
 ```
 
-##  ================================= COMPILED IN LOCAL
+##  ============================ COMPILED IN LOCAL
 ## Compilar
 
 #### Para la mayoria de los casos
