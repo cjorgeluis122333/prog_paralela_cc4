@@ -24,7 +24,7 @@ I hope that can help you
 
 ### Cuenta
 
-ssh -p 2022 uclv_jcvidal@login.uclv.hpc.cu
+
 
 ### Paso 1: Configurar consola
 
