@@ -22,25 +22,19 @@ I hope that can help you
 
 ## Connect and execute a project in the HPC (CUSTER)
 
-### Cuenta
-
-
-
-### Paso 1: Configurar consola
-
-Para definir el tipo de usuario y la particion
-
+### Paso 1: Configure console
+Define the user type and partition
 ```shell
 srun --account=UCLV -p gpu --gres=gpu:1 --pty /bin/bash
 ```
 
-### Paso 2: Cargar ek Modulo
+### Paso 2: Create module
 
 ```shell
 module load OpenMPI
 ```
 
-### Paso 3 Compilar
+### Paso 3 Compiled
 
 ```shell
 mpicc -fopenmp -o ejer1 Ejer1.c -lm
@@ -95,11 +89,12 @@ exit 0
 ```bash
 srun --account=UCLV -p gpu --gres=gpu:1 --pty /bin/bash
 ```
-### Step 2 Avilitar Prmisos
+### Step 2 Availability Permission
 Change the name of the Script
 ```shell
 chmod 755 script.sh
 ```
+
 ### Step 3 Execute
 ```
 ./scriptEjer2.sh
