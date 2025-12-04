@@ -47,7 +47,7 @@ module load OpenMPI
 mpicc -fopenmp -o ejer1 Ejer1.c -lm
 ```
 
-## ========================================CREATE SCRIPT
+## =================================CREATE SCRIPT
 
 
 ### Body Script
